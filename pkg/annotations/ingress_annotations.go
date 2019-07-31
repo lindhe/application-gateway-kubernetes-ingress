@@ -7,6 +7,7 @@ package annotations
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/knative/pkg/apis/istio/v1alpha3"
 	"k8s.io/api/extensions/v1beta1"
@@ -37,8 +38,11 @@ const (
 	// SslRedirectKey defines the key for defining with SSL redirect should be turned on for an HTTP endpoint.
 	SslRedirectKey = ApplicationGatewayPrefix + "/ssl-redirect"
 
-	// UsePrivateIP defines the key to determine whether to use private ip with the ingress.
+	// UsePrivateIPKey defines the key to determine whether to use private ip with the ingress.
 	UsePrivateIPKey = ApplicationGatewayPrefix + "/use-private-ip"
+
+	// BackendProtocolKey defines the key to determine whether to use private ip with the ingress.
+	BackendProtocolKey = ApplicationGatewayPrefix + "/backend-protocol"
 
 	// IngressClassKey defines the key of the annotation which needs to be set in order to specify
 	// that this is an ingress resource meant for the application gateway ingress controller.
@@ -51,6 +55,12 @@ const (
 	// ApplicationGatewayIngressClass defines the value of the `IngressClassKey` and `IstioGatewayKey`
 	// annotations that will tell the ingress controller whether it should act on this ingress resource or not.
 	ApplicationGatewayIngressClass = "azure/application-gateway"
+)
+
+const (
+	BackendProtocolHTTP = "http"
+
+	BackendProtocolHTTPS = "https"
 )
 
 // IngressClass ingress class
@@ -106,6 +116,20 @@ func IsCookieBasedAffinity(ing *v1beta1.Ingress) (bool, error) {
 // UsePrivateIP determines whether to use private IP with the ingress
 func UsePrivateIP(ing *v1beta1.Ingress) (bool, error) {
 	return parseBool(ing, UsePrivateIPKey)
+}
+
+// BackendProtocol provides value for protocol to be used with the backend
+func BackendProtocol(ing *v1beta1.Ingress) (string, error) {
+	protocol, err := parseString(ing, BackendProtocolKey)
+	if err != nil {
+		return BackendProtocolHTTP, err
+	}
+	if strings.ToLower(protocol) != BackendProtocolHTTP &&
+		strings.ToLower(protocol) != BackendProtocolHTTPS {
+		return BackendProtocolHTTP, errors.NewInvalidAnnotationContent(BackendProtocolKey, protocol)
+	}
+
+	return strings.ToLower(protocol), nil
 }
 
 func parseBool(ing *v1beta1.Ingress, name string) (bool, error) {

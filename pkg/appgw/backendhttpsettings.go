@@ -8,6 +8,7 @@ package appgw
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	n "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2018-12-01/network"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -272,6 +273,12 @@ func (c *appGwConfigBuilder) generateHTTPSettings(backendID backendIdentifier, p
 
 	if reqTimeout, err := annotations.RequestTimeout(backendID.Ingress); err == nil {
 		httpSettings.RequestTimeout = to.Int32Ptr(reqTimeout)
+	}
+
+	if backendProtocol, err := annotations.BackendProtocol(backendID.Ingress); err == nil {
+		if strings.ToLower(backendProtocol) == "https" {
+			httpSettings.Protocol = n.HTTPS
+		}
 	}
 
 	return httpSettings
